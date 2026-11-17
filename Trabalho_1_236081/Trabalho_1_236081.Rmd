@@ -1,0 +1,544 @@
+---
+title: "Calculo_numerico"
+author: "Daniel Lopes"
+date: "2022-09-22"
+output:
+  html_document: default
+  pdf_document: default
+---
+Trabalho 1 de Cálculo Numérico
+
+Nome: Daniel Lopes Toso
+RA: 236081
+
+![](foto_1.png)
+
+1.a)
+Para que os planetas estejam alinhados, deve ser possível traçar uma reta entre os 3 pontos, para isso, a seguinte matriz deve possuir determinante 0: [[x1,y1,1],[x2,y2,1], [0,0,1]], portanto, x1y2- y1x2 = 0. Logo, definimos "alinexp" como a variável que, quando igualada a zero, indica o alinhamento dos planetas. 
+Para encontrar o instante t em que a distância entre os planetas é mínima, primeiro definimos "distexp" como a expressão da função distância e então derivamos, portanto, os zeros da função derivada devem ser mínimos ou máximos globais. 
+```{r}
+
+#Definindo a expressão f que informa que os planetas estão alinhados quando f(x) = 0
+alinexp <- expression(3*cos(3.12*t)*2.1*sin(2.35*t)-1.9*sin(3.12*t)*5.3*cos(2.35*t))
+
+#Função que avalia uma expressão com parâmetro "t" com um número t dado.
+evalfun <- function(t, exp){
+  z <- eval(exp)
+  return(z)
+}
+
+#Definindo a expressão que calcula a distância entre os planetas. 
+distexp <- expression(sqrt((3*cos(3.12*t)-5.3*cos(2.35*t))^2+(1.9*sin(3.12*t)-2.1*sin(2.35*t))^2))
+
+#Função que deriva uma expressão de parâmetro "t" e a avalia.
+derivfun <- function(t, exp){
+  derivexp <- D(exp, "t")
+  z <- eval(derivexp)
+  return(z)
+}
+
+
+```
+
+![](foto_2.png)
+
+1)b) Definimos funções com os métodos da Bissecção, Falsa posição, Secante e Newton para a resolução dos problemas de zero de função definidos anteriormente. 
+```{r}
+#Método da bissecção
+bissec <- function(fun, ak, bk, exp = NULL){
+  erro = 10^-6
+  cont = 0
+  xk = (ak+bk)/2
+  while(erro < abs(bk - ak) | erro < abs(fun(xk, exp))){
+    xk = (ak+bk)/2
+    if(fun(xk, exp)*fun(ak, exp) < 0){bk = xk}
+    else{ak = xk}
+    cont = cont + 1
+    if(cont > 10000){
+      xk = 0
+      break
+    }
+  }
+  vetor <- c(xk, cont)
+  return(vetor)
+}
+
+#Método da Falsa Posição
+falsa_posi <- function(fun, ak, bk, exp = NULL){
+  erro = 10^-6
+  cont = 0
+  xk = (ak*fun(bk, exp) - bk*fun(ak, exp))/(fun(bk, exp) - fun(ak, exp))
+  while(erro < abs(bk - ak) | erro < abs(fun(xk, exp))){
+    xk = (ak*fun(bk, exp) - bk*fun(ak, exp))/(fun(bk, exp) - fun(ak, exp))
+    if(fun(xk, exp)*fun(ak, exp) < 0){bk = xk}
+    else{ak = xk}
+    cont = cont + 1
+  }
+  vetor <- c(xk, cont)
+  return(vetor)
+}
+
+#Método da Secante
+secante <- function(fun, x0, x1, exp = NULL){
+  erro = 10^-6
+  cont = 0
+  while(erro < abs(x1 - x0) | erro < abs(fun(x1, exp))){
+    x2 <- x1 - fun(x1, exp)*(x1 - x0)/(fun(x1, exp) - fun(x0, exp))
+    x0 = x1
+    x1 = x2
+    cont = cont+1
+  }
+  vetor <- c(x2, cont)
+  return(vetor)
+}
+
+#Método de Newton
+newton <- function(fun, funderiv, x0, exp = NULL){
+  erro = 10^-6
+  cont = 0
+  x1 = x0 - fun(x0, exp)/funderiv(x0, exp)
+  while(erro < abs(x1 - x0) | erro < abs(fun(x1, exp))){
+    x1 = x0 - fun(x0, exp)/funderiv(x0, exp)
+    x0 = x1
+    cont = cont + 1
+  }
+  vetor <- c(x0, cont)
+  return(vetor)
+}
+
+
+
+```
+
+As tabelas com cada método e o número de iterações realizado são apresentadas abaixo. A tabela 1 são os resultados da aplicação dos métodos no problema do alinhamento dos planetas, enquanto a tabela 2 mostra os resultados para o problema da distância mínima. 
+
+```{r}
+#Cria uma tabela com o resultado de cada método aplicado ao problema de 0 de função para o alinhamento dos planetas
+tabela1 <- data.frame(bissec(evalfun, 4, 4.1, alinexp), falsa_posi(evalfun, 4, 4.1, alinexp), secante(evalfun, 4, 4.1, alinexp), newton(evalfun, derivfun, 4, alinexp))
+
+colnames(tabela1) <- c("Bissecção", "Falsa Posição", "Secante", "Newton")
+rownames(tabela1) <- c("X", "Iterações")
+
+#Cria uma tabela com o resultado de cada método aplicado ao problema de 0 de função para a distância mínima dos planetas (Usou-se f'(x) = 0 para encontrar o mínimo).
+tabela2 <- data.frame(bissec(evalfun, 195.8, 195.9, D(distexp, "t")), falsa_posi(evalfun, 195.8, 195.9, D(distexp, "t")), secante(evalfun, 195.8, 195.9, D(distexp, "t")), newton(evalfun, derivfun, 195.8, D(distexp, "t")))
+
+colnames(tabela2) <- c("Bissecção", "Falsa Posição", "Secante", "Newton")
+rownames(tabela2) <- c("X", "Iterações")
+
+#Exibe as tabelas criadas anteriormente
+tabela1
+tabela2
+
+```
+
+
+![](foto_3.png)
+
+1)c) Na prática, a escolha dos métodos para cada problema devem levar a em consideração a facilidade de encontrar os pontos iniciais que não apresentam problemas para a resolução. Nas questões apresentadas, os pontos iniciais foram calculados analisando todas as trocas de sinais entre números de 0 a 200 com diferença de 0.1 entre si, isso se deve ao fato de que a posição dos planetas tem período 200, ou seja, t(0) = t(200) para os dois planetas, além disso, a diferença de 0.1 é pequena o suficiente para que 2.35x0.1  ≈ 0.235 e 3.12x0.1  ≈ 0.312 é inferior a π/4, o que implica que as funções cosseno e seno que apresentem uma troca de sinal entre t = x e t = x + 0.1 não apresentarão mais de uma troca de sinal nesse mesmo intervalo.
+
+```{r}
+#Cria uma sequência de números de 0 a 200 com passos de 0.1: 0, 0.1, 0.2, ..., 199.9, 200.
+t <- seq(0, 200, 0.1)
+
+#Função que analisa as trocas de sinais de f(a) e f(b) e as salva em uma tabela, onde a e b são números consecutivos do intervalo criado anteriormente. 
+intervalos <- function(fun, t, exp){
+  df = data.frame(0, 0, 0, 0)
+  names(df)<-c("a","b", "sgnfa", "sgnfb")
+  for(n in 1:(length(t)-1)){
+    if(fun(t[n], exp)*fun(t[n+1], exp) < 0){
+      a = t[n]
+      b = t[n+1]
+      sgnfa = sign(fun(t[n], exp))
+      sgnfb = sign(fun(t[n+1], exp))
+      de <- data.frame(a, b, sgnfa, sgnfb)
+      names(de)<-c("a","b", "sgnfa", "sgnfb")
+      df <- rbind(df, de)
+    }
+  }
+  df <- df[-1, ]
+  return(df)
+}
+
+#Exibindo os intervalos criados 
+intervalos(evalfun, t, alinexp)
+intervalos(evalfun, t, D(distexp, "t"))
+
+#Salvando o intervalo criado para a função da distância mínima dos planetas, a fim de analisar qual dos mínimos da função é candidato a mínimo global.
+dataframeint <- intervalos(evalfun, t, D(distexp, "t"))
+
+```
+
+
+Para os pontos iniciais utilizados a fim de encontrar o primeiro momento em que os planetas se alinham, simplesmente foi escolhido o primeiro intervalo com troca de sinal. Já para o problema do mínimo da distância dos planetas, foi utilizada uma função com o método da bissecção para cada intervalo (com um critério de parada após 10^5 iterações), e então foi analisado em qual dos pontos resultantes a f(x) observada é a menor possível, isso levou a escolha dos pontos iniciais para a aplicação dos demais métodos.
+
+O método de Newton, como só utiliza de um ponto inicial, sempre utilizou o menor dos dois pontos escolhidos para os outros métodos.
+
+```{r}
+#Testando os intervalos de troca de sinal encontrados anteriormente para procurar um mínimo global da função distância dos planetas a partir de uma bissecção em cada intervalo. 
+testeintervalo <- function(fun, t, exp, method, dataframeint){
+  df = data.frame(0)
+  names(df) <- "x"
+  for(n in 1:(nrow(dataframeint))){
+    ak = dataframeint[n,1]
+    bk = dataframeint[n,2]
+    x <- method(fun, ak, bk, exp)
+    if(x[1] != 0){
+      de <- data.frame(x[1])
+      names(de) <- "x"
+      df <- rbind(df, de)
+    }
+  }
+  return(df)
+}
+
+dataframe <- testeintervalo(evalfun, t, D(distexp, "t"), bissec, dataframeint)
+
+dataframe$f_de_x <- evalfun(dataframe$x, distexp)
+
+#Exibe o mínimo global encontrado. Está no intervalo 195.8 e 195.9
+dataframe[which.min(dataframe$f_de_x),]
+```
+
+
+![](foto_4.png)
+2.1) A multiplicidade p da função normalmente requere algoritmos iterativos com derivadas (tanto ou mais complicados do que o próprio método de resolução), o que dificulta seu uso [1]. A proximidade da raiz múltipla requere uma análise da função e a determinação de um intervalo inicial "seguro" para a aplicação do método de Newton, que possui características caóticas quando em condições de fronteira. 
+
+Prova em LaTeX a seguir [2]: 
+
+![](foto_13.png)
+
+As condições de convergência quadrática, então, requerem que f'(x) seja diferente de 0 sempre (computacionalmente, é recomendado que não esteja próxima de zero também), e a função deve ser analítica, de modo a possuir expansão de Taylor em torno da raiz procurada. 
+
+![](foto_5.png)
+
+2.2 a) Definimos a função apresentada no problema, assim como sua derivada, como as funções "funcproblema22" e "derivfuncproblema22" respectivamente. Após isso, aplicamos o método de Newton simples (p = 1) para a resolução do problema.  
+
+```{r}
+#Define a função apresentada no problema
+funcproblema22 <- function(x){
+  valor <- (abs(x-9)^4.5)/(1+(sin(x))^2)
+  return(valor)
+}
+#Define a derivada da solução apresentada no problema
+derivfuncproblema22 <- function(x){
+  valor <- (4.5*(x-9)*abs(x-9)^2.5)/(1+sin(x)^2) - (2*abs(x-9)^4.5*sin(x)*cos(x))/(1+sin(x)^2)^2
+  return(valor)
+}
+#Método de Newton, quando o parâmetro p = 1, tem-se o método de Newton Simples.
+newtonproblema22 <- function(f, df, x0, p){
+  cont = 0
+  erro = 10^-6
+  x1 = x0 - p*f(x0)/df(x0)
+  while(abs(x1 - x0) > erro | abs(f(x1)) > erro){
+    x0 = x1
+    x1 = x0 - p*f(x0)/df(x0)
+    cont = cont + 1
+  }
+  NAF = cont
+  SOL = x1
+  VAL = f(x1)
+  vetor <- c(NAF, SOL, VAL)
+  names(vetor) <- c("NAF", "SOL", "VAL")
+  vetor <- format(vetor, scientific = FALSE)
+  return(vetor)
+}
+
+
+#Imprime o método de Newton Simples aplicado ao problema do enunciado
+newtonproblema22(funcproblema22, derivfuncproblema22, 6, 1)
+```
+
+b) Aplicamos o método da secante simples (p = 1) para a resolução do problema. Com o método da secante precisa de 2 pontos iniciais para funcionar, definimos o primeiro ponto inicial pelo que foi dado pela questão, x0 = 6, e o segundo ponto inicial é o ponto da segunda iteração dado pelo método de Newton simples. 
+
+```{r}
+#Método da Secante, quando p = 1, tem-se o método da secante simples.
+secante1ponto <- function(f, df, x0, p){
+  cont = 0
+  erro = 10^-6
+  x1 = x0 - f(x0)/df(x0)
+  x2 = x1 - (p*f(x1)*(x1-x0))/(f(x1)-f(x0))
+  
+  while(abs(x2 - x1) > erro | abs(f(x2)) > erro){
+    x0 = x1
+    x1 = x2 
+    x2 = x1 - (p*f(x1)*(x1-x0))/(f(x1)-f(x0))
+    cont = cont + 1
+  }
+  NAF = cont
+  SOL = x2
+  VAL = f(x2)
+  vetor <- c(NAF, SOL, VAL)
+  names(vetor) <- c("NAF", "SOL", "VAL")
+  vetor <- format(vetor, scientific = FALSE)
+  return(vetor)
+}
+
+#Imprime o método da secante aplicado ao problema do enunciado.
+secante1ponto(funcproblema22, derivfuncproblema22, 6, 1)
+```
+
+c) Com as funções anteriores, utilizamos os métodos de Newton e da Secante adaptados para a multiplicidade apresentada (p = 4.5).
+
+```{r}
+#Apresenta os resultados do método de Newton adaptado.
+newtonproblema22(funcproblema22, derivfuncproblema22, 6, 4.5)
+
+#Apresenta os resultados do método da Secante adaptado.
+secante1ponto(funcproblema22, derivfuncproblema22, 6, 4.5)
+```
+
+
+
+![](foto_6.png)
+3.1 a) Os pacotes utilizados são PRACMA e MATRIXCALC, que se especializam em funções e operações com Matrizes. São usadas as funções que criam matrizes de hilbert n por n, assim como o condicionamento dado pela norma 2, os resultados são então apresentados em uma tabela. 
+
+```{r}
+#Pacotes para cálculos com matrizes.
+library(pracma)
+library(matrixcalc)
+
+#Cria uma tabela com o tamanho da matriz de Hilbert e seu respectivo condicionamento.
+f <- data.frame(Tamanho_Matriz_Hilbert= 2:12)
+n = 2
+while(n < nrow(f)+2){
+  #Matriz de Hilbert nxn
+  matrix <- hilbert.matrix(n)
+  #Condicionamento com norma p = 2
+  f$Condicionamento[n-1] <- cond(matrix)
+  n = n + 1
+}
+
+#Exibe a tabela
+f
+```
+
+![](foto_7.png)
+
+3.1 b) Definimos uma função que cria a matriz de hilbert Hn n por n e o vetor Bn a partir da soma das linhas da respectiva matriz, após isso, a função Solve() do R resolve o sistema de equações Hn*X = Bn e imprime a resposta. Essa função então é aplicada para os valores de n entre 3 e 10.   
+A função Solve() da base do R usa de mecanismos do código do LAPACK para resolver equações e sistemas de equação, isso é feito a partir da seguinte forma: primeiro computa-se a fatorização LU (Lower-Upper) usando pivoteamento parcial e troca de linhas, depois o sistema é resolvido usando substituição.
+
+```{r}
+#Função para resolver os sistemas de equação propostos.
+sistemas <- function(n){
+  hn <- hilbert.matrix(n)
+  vetor <- rowSums(hn)
+  x <- solve(hn, vetor)
+  print(x)
+}
+
+for(k in 3:10){
+  sistemas(k)
+}
+
+sistemas(11) #por curiosidade
+#sistemas(12) causa erro - Error in solve.default(hn, vetor) : system is computationally singular: reciprocal condition number = 2.63277e-17
+
+```
+
+
+![](foto_8.png)
+3.1 c) Analisando o número de condicionamento da Matriz de Hilbert pelo seu tamanho, podemos notar um aumento que sugere um crescimento exponencial conforme n cresce. Com isso, é possível fazer uma análise de regressão da seguinte forma: Seja Y = Log(Condicionamento) e X = Tamanho da Matriz de Hilbert, utilizando as funções lm e summary do R para produzir e apresentar dados da análise de regressão de Y ~ X, podemos notar a estatística R² = 0.9999 indicando um ajuste linear quase perfeito, o que reforça a ideia do crescimento exponencial do número de condicionamento.
+Então, podemos construir o gráfico do logaritmo natural do condicionamento pelo tamanho da matriz e então traçar a reta de regressão encontrada pelo método dos mínimos quadrados definido na função lm(), que se ajusta naturalmente aos pontos. 
+Por fim, imprimimos os erros entre os resultados obtidos e o valor esperado pela reta de regressão, é notável que o módulo dos erros é menor do que 1 (Um erro relativo baixíssimo), porém o gráfico sugere heterocedasticidade dos dados.
+
+```{r}
+#Gráficos que apresentam relação positiva entre o tamanho da matriz de Hilbert e seu condicionamento
+
+plot(f, xlab = "Tamanho da Matriz de Hilbert", ylab = "Condicionamento")
+
+analise <- data.frame(Tamanho_Matriz_Hilbert= 2:12)
+n = 2
+while(n < nrow(analise)+2){
+  matrix <- hilbert.matrix(n)
+  analise$Condicionamento[n-1] <- cond(matrix)
+  n = n + 1
+}
+
+#Retorna as estatísticas da análise de regressão linear do logaritmo natural do condicionamento pelo tamanho da matriz de Hilbert.
+summary(lm(log(Condicionamento) ~ Tamanho_Matriz_Hilbert, data = analise))
+
+#Imprime o gráfico do Log do Condicionamento pelo tamanho da matriz, juntamente com a reta que minimiza o erro quadrático médio dos pontos.
+plot(analise$Tamanho_Matriz_Hilbert, log(analise$Condicionamento), xlab = "Tamanho da Matriz de Hilbert", ylab = "Log do Condicionamento")
+abline(lm(log(Condicionamento) ~ Tamanho_Matriz_Hilbert, data = analise), col = "blue")
+
+#Imprime o valor do erro de cada ponto comparado a sua estimativa pela reta de regressão.
+plot(log(analise$Condicionamento) - fitted.values(lm(log(Condicionamento) ~ Tamanho_Matriz_Hilbert, data = analise)), ylab = "Erro")
+```
+
+![](foto_9.png)
+
+4)a) Resolução escrita em LaTeX:
+
+![](foto_12.png)
+
+
+![](foto_10.png)
+4. b)
+As funções a seguir avaliam a expressão dada, retornam seu gradiente, sua hessiana e computam o método iterativo de Newton descrito no item anterior, respectivamente. 
+
+```{r}
+#Função que avalia a expressão f(x,y) em x e y dados.
+f <- function(exp, x, y){
+  final <- eval(exp)
+  return(final)
+}
+
+#Função que cria e avalia o gradiente de f(x,y) em x e y dados.
+gradf <- function(exp, x, y){
+  dxexp <- D(exp, "x")
+  dyexp <- D(exp, "y")
+  final <- c(eval(dxexp), eval(dyexp))
+  return(final)
+}
+
+#Função que cria e avalia a matriz de f(x,y) em x e y dados.
+hesf <- function(exp, x, y){
+  dxx <- D(D(exp, "x"), "x")
+  dxy <- D(D(exp, "x"), "y")
+  dyx <- D(D(exp, "y"), "x")
+  dyy <- D(D(exp, "y"), "y")
+  final <- matrix(c(eval(dxx), eval(dxy), eval(dyx), eval(dyy)), nrow = 2, ncol = 2)
+  return(final)
+}
+
+#A função recebe o ponto inicial, a expressão original, assim como seu gradiente e hessiana, e resolve o sistema de equações Hess * X = -Grad iterativamente se aproximando do ponto (x,y) que zera a equação inicial. Com o argumento cond_parada é possível escolher a condição de parada da função de acordo com as combinações especificadas na questão. 
+newtonmult <- function(f, gradf, hesf, exp, x, y, e1, e2, k, p, cond_parada){
+  aux = 0
+  x0 <- as.matrix(c(x, y))
+  xk <- x0 
+  
+  if(cond_parada == 1){
+    while(norm(as.matrix(gradf(exp, x, y)), as.character(p)) >= e1 & aux < k){
+      s = solve(hesf(exp, x, y), -gradf(exp, x, y))
+      x = s[1] + x
+      y = s[2] + y
+      aux = aux + 1
+    }
+    vetor <- c(x, y, aux, f(exp, x, y))
+    vetor <- format(vetor, scientific = FALSE)
+    return(vetor)
+  }
+  if(cond_parada == 2){
+    erro = 1
+    while(erro >= e2 & aux < k){
+      s = solve(hesf(exp, x, y), -gradf(exp, x, y))
+      xwhole = as.matrix(c(x, y))
+      xk = s + xwhole
+      erro = norm(xk - xwhole)
+      x = s[1] + x
+      y = s[2] + y
+      aux = aux +1
+    }
+    vetor <- c(x, y, aux, f(exp, x, y))
+    vetor <- format(vetor, scientific = FALSE)
+    return(vetor)
+  }
+  if(cond_parada == 6){
+    while(aux < k){
+      s = solve(hesf(exp, x, y), -gradf(exp, x, y))
+      x = s[1] + x
+      y = s[2] + y
+      aux = aux + 1
+    }
+    vetor <- c(x, y, aux, f(exp, x, y))
+    vetor <- format(vetor, scientific = FALSE)
+    return(vetor)
+  }
+  if(cond_parada == 3){
+    while(norm(as.matrix(gradf(exp, x, y)), as.character(p)) >= e1){
+      s = solve(hesf(exp, x, y), -gradf(exp, x, y))
+      x = s[1] + x
+      y = s[2] + y
+      aux = aux +1
+    }
+    vetor <- c(x, y, aux, f(exp, x, y))
+    vetor <- format(vetor, scientific = FALSE)
+    return(vetor)
+  }
+  if(cond_parada == 4){
+    erro = 1
+    while(erro >= e2){
+      s = solve(hesf(exp, x, y), -gradf(exp, x, y))
+      xwhole = as.matrix(c(x, y))
+      xk = s + xwhole
+      erro = norm(xk - xwhole)
+      x = s[1] + x
+      y = s[2] + y
+      aux = aux +1
+    }
+    vetor <- c(x, y, aux, f(exp, x, y))
+    vetor <- format(vetor, scientific = FALSE)
+    return(vetor)
+  }
+  if(cond_parada == 5){
+    erro = 1
+    while(erro >= e2 & aux < k & norm(as.matrix(gradf(exp, x, y)), as.character(p)) >= e1){
+      s = solve(hesf(exp, x, y), -gradf(exp, x, y))
+      xwhole = as.matrix(c(x, y))
+      xk = s + xwhole
+      erro = norm(xk - xwhole)
+      x = s[1] + x
+      y = s[2] + y
+      aux = aux +1
+    }
+    vetor <- c(x, y, aux, f(exp, x, y))
+    vetor <- format(vetor, scientific = FALSE)
+    return(vetor)
+  }
+}
+```
+
+A segunda função, utilizando cosseno e seno, não pode ser computada a partir do ponto (0,0) pois isso resulta em uma matriz hessiana singular em sua primeira iteração, impossibilitando o uso da sua inversa, e portanto, impossibilitando a resolução do sistema de equações
+
+```{r}
+#Define as expressões dadas na questão
+exp42 <- expression(cos(x)*sin(y))
+
+exp41 <- expression((1-x)^2 + 100*(y - x^2)^2)
+
+dfnewtonmult <- data.frame(0,0,0,0,0)
+
+#Aplica a função em cada uma das expressões, para cada método de parada possível, e salva os resultados em uma tabela
+for(j in 1:5){
+  l1 <- newtonmult(f, gradf, hesf, exp41, -3, -4, 10^-6, 10^-6, 10^5, 2, j)
+  #l2 <- newtonmult(f, gradf, hesf, exp42, 0, 0, 10^-6, 10^-6, 10^5, 2, j) Causa erro Error in solve.default(hesf(exp, x, y), -gradf(exp, x,
+  #Arredonda os resultados para as primeiras 10 casas decimais
+  l1[1] <- round(as.numeric(l1[1]), 10)
+  l1[2] <- round(as.numeric(l1[2]), 10)
+  l1[3] <- round(as.numeric(l1[3]), 10)
+  l1[4] <- round(as.numeric(l1[4]), 10)
+  dfnewtonmult <- rbind(dfnewtonmult, c(j,l1))
+  #dfnewtonmult <- rbind(dfnewtonmult, c(j,l2))
+}
+
+colnames(dfnewtonmult) <- c("Condição de Parada","X", "Y", "Iterações", "F(x,y)")
+
+#Imprime a tabela com todos os valores do vetor (x,y), iterações, condição de parada, entre outros.
+dfnewtonmult[-1,]
+
+
+```
+
+![](foto_11.png)
+
+4.c) Não necessariamente, o método encontra pontos críticos locais da função, que podem ser apenas mínimos locais ou até mesmo pontos de máximo
+
+
+
+Referências:
+
+[1] Dixon, John. (2009). Suspension Geometry and Computation. Suspension Geometry and Computation. 1-417. 
+
+[2] Wang, Jimmy. https://math.stackexchange.com/questions/93156/newtons-method-for-roots-of-multiplicity-1. Acesso: 28/09/2022
+
+[3] C. D. Meyer, Matrix analysis and applied linear algebra, SIAM, 2000
+
+[4] M. A. Gomes Ruggiero, V. L. da Rocha Lopes. Cálculo Numérico - Aspectos Teóricos e Computacionais, 2ª edição, Editora Pearson, 1997. · M.C. Cunha.
+
+
+
+
+
+
+
+

@@ -1,0 +1,497 @@
+---
+title: "Trabalho II Calculo Numerico"
+author: "Daniel Lopes"
+date: "2022-11-11"
+output: html_document
+---
+Aluno: Daniel Lopes Toso
+RA: 236081
+
+Para visualizar o arquivo .rmd com os códigos será necessário o software Rstudio.
+Para que o código funcione adequadamente no arquivo .rmd, é necessário definir o diretório de trabalho a ser utilizado, para isso:
+-Abra o RStudio
+-Abra o arquivo .rmd
+-Vá em Session
+-Set working directory -> To source file location
+
+![](C:/R/CalculoNumerico/Imagens/11.png)
+
+O arquivo .rmd será enviado em uma pasta com os demais elementos a serem utilizados, é importante abrir o arquivo dentro da pasta e não retirar nenhum dos demais elementos.
+
+Serão utilizados os pacotes abaixo, o primeiro chunk instala os pacotes e o segundo chama as bibliotecas para o ambiente do rmd.
+
+tidyverse -> manipulação de data frames, gráficos, funções de utilidade geral. 
+readxl -> lê arquivos no formato .xlsx
+gganimate -> animações em R.
+gifski -> renderizar animações e salvar em .gif.
+transformr -> auxilio para animações em R.
+pracma -> funções matemáticas relacionadas a matrizes, sistemas lineares e sistemas de ODE.
+
+
+```{r}
+#Retire a hashtag para executar a instalação.
+#install.packages("tidyverse")
+#install.packages("readxl")
+#install.packages("gganimate")
+#install.packages("gifski")
+#install.packages("pracma")
+#install.packages("transformr")
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(gganimate)
+library(gifski)
+library(pracma)
+library(transformr)
+```
+
+
+______________________________________________________________________________________________________________
+![](C:/R/CalculoNumerico/Imagens/1.png)
+
+
+A matriz apresentada possui determinante não nulo, portanto, o sistema tem solução única. 
+Por ser estritamente diagonalmente dominante, é garantida a convergência de diversos métodos iterativos e o bom condicionamento para métodos diretos, o que evita erros de arredondamento.
+
+Métodos Diretos:
+
+-Eliminação de Gauss: O método de eliminação de Gauss aparenta a ser o mais efetivo pois a matriz já é estritamente diagonalmente dominante, então não é necessário pivotear colunas ou linhas, apenas realizar as operações necessárias para transformar a matriz em triangular superior (ou diagonal) e resolve-la.
+
+-Regra de Cramer: A regra de Cramer tem custo computacional de grau n^n, onde n é o tamanho da matriz. Logo, para este caso, iria necessitar de 10 bilhões de operações para sua resolução. Apesar de ser um método direto e relativamente simples de programar, traria um grande custo computacional neste caso.
+
+-Fatoração LU: A fatoração LU possui um custo computacional direcionado ao passo da criação das matrizes que fatoram a matriz original. Logo, para resolver um único sistema de equações, o método não seria apropriado, pois é menos efetivo do que a eliminação de Gauss. Porém, se fosse necessária a resolução do sistema diversas vezes com a mesma matriz A, a fatoração LU teria um custo-benefício superior.  
+
+
+Métodos Iterativos:
+
+-Gauss-Seidel: Como a matriz é estritamente diagonalmente dominante, a convergência para o método de Gauss-Seidel é garantida. Por sua eficiência e facilidade de implementação, é um método iterativo recomendável neste caso.
+
+-Gauss-Jacobi: O método de Gauss-Jacobi tem sua convergência garantida pelo mesmo motivo descrito acima, porém sua eficiência é inferior ao método de Gauss-Seidel, portanto, não é o método ideal para este caso, mas não também não possui pontos negativos.
+
+______________________________________________________________________________________________________________
+![](C:/R/CalculoNumerico/Imagens/2.png)
+
+Temos que Fij = [(Mi.Mj)/r²]Ř = [(Mi.Mj)/r²](Pj - Pi).
+Logo, podemos substituir o sistema (1) por:
+m1P1'' = [(M1.M2)/r²](P2 - P1)
+m2P2'' = [(M2.M1)/r²](P1 - P2)
+Ou seja:
+X1'' = [M2/r²](X2-X1)
+Y1'' = [M2/r²](Y2-Y1)
+X2'' = [M1/r²](X1-X2)
+Y2'' = [M1/r²](Y1-Y2)
+
+Notando que Xi' = Vxi e Yi' = Vyi, podemos construir o vetor Z tal que:
+Z = [X1, Y1, Vx1, Vy1, X2, Y2, Vx2, Vy2]
+
+Logo, o sistema de equações diferenciais ordinárias de primeira ordem é dado por:
+Z' = [Vx1, Vy1, [M2/r²](X2-X1), [M2/r²](Y2-Y1), Vx2, Vy2, [M1/r²](X1-X2), [M1/r²](Y1-Y2)]
+
+Com condição inicial:
+Z(t(0)) = [5,0,0,1,-3,0,0,-2]
+
+Onde ' = d/dt
+
+
+![](C:/R/CalculoNumerico/Imagens/3.png)
+
+Primeiro, definimos o sistema de equações diferenciais ordinárias e a condição inicial conforme demonstrado na questão anterior.
+O RA utilizado é 236081, então as massas dos planetas são: m1 = 2, m2 = 1.
+
+```{r}
+#A função PVI é Z', note que Z' é função de Z e t. 
+PVIFunc <- function(t, Z){
+  M1 = 2
+  M2 = 1
+  R = sqrt((Z[1] - Z[5])^2 + (Z[2] - Z[6])^2)
+  EQ1 = (M2/R^3)*(Z[5] - Z[1])
+  EQ2 = (M2/R^3)*(Z[6] - Z[2])
+  EQ3 = (M1/R^3)*(Z[1] - Z[5])
+  EQ4 = (M1/R^3)*(Z[2] - Z[6])
+  vector = c(Z[3], Z[4], EQ1, EQ2, Z[7], Z[8], EQ3, EQ4)
+  return(vector)
+}
+
+#As condições iniciais de posição e velocidade de ambos os planetas
+Z = c(5,0,0,1,-3,0,0,-2)
+```
+
+O intervalo escolhido é de 0 a 100, com 500 passos, portanto, h = 100/500 = 0.2.
+É utilizada a função rk4sys do pacote pracma. A função aplica o método de runge kutta de quarta ordem para resolver o sistema de equações numericamente.
+
+```{r}
+A = 0
+B = 100
+N = 500
+
+#resolução do sistema Z' = f. Os resultados são salvos em um dataframe
+DF <- pracma::rk4sys(f = PVIFunc, a = A, b = B, y0 = Z, n = N)$y 
+
+#renomeando as colunas do dataframe para as respectivas variáveis obtidas.
+names(DF) <- c('X1', 'Y1', 'Vx1', 'Vy1', 'X2', 'Y2', 'Vx2', 'Vy2')
+
+```
+
+```{r}
+#criando um novo dataframe, filtrando as variáveis de posição e adicionando o tempo de 0 a 100 em 500 passos.
+planetas <- data.frame(X1 = DF[,1], Y1 = DF[,2], X2 = DF[,5], Y2 = DF[,6], Tempo = seq(A, B, (B-A)/N))
+```
+
+```{r}
+#adicionando uma coluna distancia ao dataframe
+planetas$Distancia <- (planetas[,1] - planetas[,3])^2 + (planetas[,2] - planetas[,4])^2
+
+#plot da distância dos planetas pelo tempo
+plot(planetas$Tempo, planetas$Distancia)
+```
+
+A trajetória dos planetas foi graficada como uma animação. Ela pode ser visualizada abrindo o arquivo .rmd no Rstudio e executando o chunk abaixo ou no arquivo orbita.gif incluso com o trabalho.
+
+```{r}
+lol <- ggplot(planetas)+
+  geom_point(aes(x = X1, y = Y1, color = "red", size = 2))+
+  geom_point(aes(x = X2, y = Y2, color = "blue", size = 2))+
+  transition_time(Tempo)
+
+animate(lol, duration = 4, fps = 20, width = 800, height = 500, renderer = gifski_renderer())
+anim_save("orbita.gif")
+```
+
+Os planetas tem velocidade inicial superior a velocidade de escape entre um e outro, por isso, a órbita não é realizada e eles se afastam indefinidamente. A propósito de curiosidade, se o primeiro planeta possuísse massa = 100 e o segundo planeta possuísse massa = 10, por exemplo, a órbita seria possível para as mesmas condições inciais. Abaixo, será construído um gráfico extra das posições dos planetas para este caso. 
+
+```{r}
+PVIFunc_extra <- function(t, Z){
+  M1 = 100
+  M2 = 10
+  R = sqrt((Z[1] - Z[5])^2 + (Z[2] - Z[6])^2)
+  EQ1 = (M2/R^3)*(Z[5] - Z[1])
+  EQ2 = (M2/R^3)*(Z[6] - Z[2])
+  EQ3 = (M1/R^3)*(Z[1] - Z[5])
+  EQ4 = (M1/R^3)*(Z[2] - Z[6])
+  vector = c(Z[3], Z[4], EQ1, EQ2, Z[7], Z[8], EQ3, EQ4)
+  return(vector)
+}
+Z_extra = c(5,0,0,1,-3,0,0,-2)
+A_extra = 0
+B_extra = 100
+N_extra = 1000
+
+DF_extra <- pracma::rk4sys(f = PVIFunc_extra, a = A_extra, b = B_extra, y0 = Z_extra, n = N_extra)$y 
+
+#renomeando as colunas do dataframe para as respectivas variáveis obtidas.
+names(DF_extra) <- c('X1', 'Y1', 'Vx1', 'Vy1', 'X2', 'Y2', 'Vx2', 'Vy2')
+
+planetas_extra <- data.frame(X1 = DF_extra[,1], Y1 = DF_extra[,2], X2 = DF_extra[,5], Y2 = DF_extra[,6], Tempo = seq(A_extra, B_extra, (B_extra-A_extra)/N_extra))
+
+lol <- ggplot(planetas_extra)+
+  geom_point(aes(x = X1, y = Y1, color = "red", size = 2))+
+  geom_point(aes(x = X2, y = Y2, color = "blue", size = 2))+
+  transition_time(Tempo)
+
+animate(lol, duration = 8, fps = 20, width = 800, height = 500, renderer = gifski_renderer())
+anim_save("orbita_extra.gif")
+```
+
+
+![](C:/R/CalculoNumerico/Imagens/4.png)
+
+É criado um novo dataframe e adicionada as colunas as coordenadas Pc do centro de massa do sistema. Após isso, as demais coordenadas são ajustas de acordo para descontar a influência da trajetória do centro de massa.
+
+```{r}
+planetas_ajustado = planetas
+planetas_ajustado$XC = (1*planetas$X1 + 2*planetas$X2)/(1+2)
+planetas_ajustado$YC = (1*planetas$Y1 + 2*planetas$Y2)/(1+2)
+planetas_ajustado$X1 = planetas_ajustado$X1 - planetas_ajustado$XC
+planetas_ajustado$X2 = planetas_ajustado$X2 - planetas_ajustado$XC
+planetas_ajustado$Y1 = planetas_ajustado$Y1 - planetas_ajustado$YC
+planetas_ajustado$Y2 = planetas_ajustado$Y2 - planetas_ajustado$YC
+```
+
+A animação pode ser visualizada no arquivo .rmd utilizando o chunk abaixo ou no arquivo orbita_ajustada.gif.
+
+```{r}
+orbita_fuleira <- ggplot(planetas_ajustado)+
+  geom_point(aes(x = X1, y = Y1, color = "red", size = 2))+
+  geom_point(aes(x = X2, y = Y2, color = "blue", size = 2))+
+  transition_time(Tempo)
+
+animate(orbita_fuleira, duration = 10, fps = 20, width = 800, height = 500, renderer = gifski_renderer())
+anim_save("orbita_ajustada.gif")
+```
+
+![](C:/R/CalculoNumerico/Imagens/5.png)
+
+```{r}
+head(planetas)
+```
+
+Para realizar a interpolação, são escolhidos os 3 primeiros valores da variável "distancia" dos planetas e utilizada a função lm (linear model) da base do R para retornar os coeficientes da melhor curva quadrática que passa pelos 3 pontos, como o número de pontos é uma unidade superior ao grau do polinômio, a curva ajustada será uma interpolação. Os coeficientes serão obtidos utilizando a função coef(), note que coef(x) retornará uma lista de valores, onde o primeiro elemento é o coeficiente da constante, o segundo elemento é o coeficiente linear e o terceiro elemento é o coeficiente quadrático. 
+Pela equação do vértice da parábola, podemos utilizar os coeficientes de f(x) = ax² + bx + c, para encontrar o valor de x que resulta no mínimo da função (pois a > 0), a saber:
+A função é mínima quando x = -b/2a
+
+```{r}
+x <- lm(formula = planetas[1:3,6] ~ planetas[1:3,5] + I(planetas[1:3,5]^2))
+
+-coef(x)[2]/(2*coef(x)[3])
+
+```
+É notável que -1,16*10^-5 é um valor negativo para o tempo, ou seja, não pertence ao domínio procurado. Portanto, o mínimo se dará na fronteira, logo, acontece quando t = 0.
+
+______________________________________________________________________________________________________________
+
+![](C:/R/CalculoNumerico/Imagens/6.png)
+
+Os dados foram salvos em uma tabela no excel, para chamar o arquivo para o R, será usada a função read_excel do pacote readxl. Para corretamente carregar a tabela, é necessário utilizar o diretório correto no RStudio, como indicado no começo do arquivo .rmd.
+
+Para o método dos mínimos quadrados, será utilizado um resultado da estatística em regressão linear que define [2]:
+
+Y = Vetor dos elementos da variável resposta
+X = Vetor dos elementos das variáveis preditores onde a primeira coluna é adicionada de modo que todos seus elementos são o número 1.
+Beta = (X^(t).X)^(-1).X^(t).Y
+
+Onde Beta é o vetor dos parâmetros do método dos mínimos quadrados. 
+
+X^(t) é a transposta de X.
+M^(-1) é a matriz inversa de M.
+
+
+```{r}
+#Carregando e ajustando o tipo das variáveis da tabela
+dados <- readxl::read_excel("C:/R/CalculoNumerico/calculo_numerico.xlsx") %>% mutate(Demanda = as.numeric(Demanda), Semana = as.numeric(Semana))
+
+tabela <- dados
+
+#Criando colunas com as potências da variável preditora Semana.
+for(n in 2:15){
+  tabela <- tabela %>% mutate("X{n}" := Semana^n)
+}
+
+#Reordenando a tabela por conveniência.
+tabela <- tabela %>% select(Semana, X2:X15, Demanda)
+
+Parametros <- function(X, Y){
+  Y = as.matrix(Y)
+  X = as.matrix(X)
+  #Cálculo do vetor Beta dos parâmetros, a função Solve retorna a inversa da matriz.
+  Beta_hat <- solve(t(X)%*%X)%*%t(X)%*%Y
+  return(Beta_hat)
+}
+
+#Print dos parâmetros para os polinômios de grau 1, 2 e 3.
+for(m in c(1,2,3)){
+  X = cbind(rep(1, nrow(tabela)), tabela[,1:m])
+  Y = tabela[,16]
+  print(Parametros(X, Y))
+}
+
+
+
+```
+
+São utilizados polinômios do grau até 3 pois a partir do grau 4 a matriz X^tX é computacionalmente singular, o que impede a realização da operação de inversão e também demonstra o mal condicionamento do problema apresentado.
+
+![](C:/R/CalculoNumerico/Imagens/7.png)
+
+É criada uma nova tabela com o scaling dos dados, primeiro é adicionada a varíavel preditora Semana após o scaling.
+
+```{r}
+dadosscaling <- cbind(SemanaScaling = (dados$Semana - mean(dados$Semana))/(sqrt(var(dados$Semana))), Demanda = dados$Demanda) %>% as.data.frame()
+```
+
+![](C:/R/CalculoNumerico/Imagens/8.png)
+
+Então, é adicionada a variável resposta Demanda após o scaling.
+
+```{r}
+dadosscaling$Demanda <- (dadosscaling$Demanda - mean(dadosscaling$Demanda))/(sqrt(var(dadosscaling$Demanda)))
+```
+
+![](C:/R/CalculoNumerico/Imagens/9.png)
+
+São feitos os respectivos gráficos: gráfico de Demanda por semana, o polinômio linear com seus respectivos parâmetros encontrados na questão anterior, assim como os polinômios quadráticos e cúbicos.
+
+```{r}
+#Usando os vetores de parâmetros encontrados anteriormente para as funções de grau 1, 2 e 3
+Par1 = Parametros(cbind(rep(1, nrow(tabela)), tabela[,1:1]), tabela[,16])
+Par2 = Parametros(cbind(rep(1, nrow(tabela)), tabela[,1:2]), tabela[,16])
+Par3 = Parametros(cbind(rep(1, nrow(tabela)), tabela[,1:3]), tabela[,16])
+
+dados %>% ggplot(aes(x = Semana, y = Demanda))+
+  geom_point()+
+  geom_line(linetype = 2)+
+  stat_function(fun = function(x){Par1[1]+Par1[2]*x}, aes(color = "Linear"))+
+  geom_line(linetype = 2)+
+  stat_function(fun = function(x){Par2[1]+Par2[2]*x + Par2[3]*x^2}, aes(color = "Quadrática"))+
+  geom_line(linetype = 2)+
+  stat_function(fun = function(x){Par3[1]+Par3[2]*x + Par3[3]*x^2 + Par3[4]*x^3}, aes(color = "Cúbica"))
+```
+
+É notável que a predição ainda não é ideal, para conseguir computar os parâmetros de polinômios com graus maiores, utilizaremos a função lm (linear model) da base do R. Essa função utiliza a mesma técnica demonstrada anteriormente para o cálculo do vetor de parâmetros (coeficientes) do polinômio, porém é melhor trabalhada e otimizada, podendo calcular os parâmetros para graus até 14 antes de retornar NA's. 
+
+Serão utilizados os coeficientes de grau 6 e 12.
+
+```{r}
+#Obtenção dos coeficientes de grau 6 e 12
+Par6 <- lm(Demanda ~ ., data = tabela[,c(1:6, 16)])$coefficients
+Par12 <- lm(Demanda ~ ., data = tabela[,c(1:12, 16)])$coefficients
+
+dados %>% ggplot(aes(x = Semana, y = Demanda))+
+  geom_point()+
+  geom_line(linetype = 2)+
+  stat_function(fun = function(x){Par6[1]+Par6[2]*x + Par6[3]*x^2 + Par6[4]*x^3 + Par6[5]*x^4 + Par6[6]*x^5 + Par6[7]*x^6}, aes(color = "Sexta Ordem"))+
+  geom_line(linetype = 2)+
+  stat_function(fun = function(x){Par12[1]+Par12[2]*x + Par12[3]*x^2 + Par12[4]*x^3 + Par12[5]*x^4 + Par12[6]*x^5 + Par12[7]*x^6 + Par12[8]*x^7 + Par12[9]*x^8 + Par12[10]*x^9 + Par12[11]*x^10 + Par12[12]*x^11 + Par12[13]*x^12}, aes(color = "Décima Segunda Ordem"))
+```
+
+É notável como a aproximação das características da função aumenta consideravelmente com os graus do polinômio, tendo uma tendência geral modelada satisfatoriamente com um polinômio de grau 12. 
+
+![](C:/R/CalculoNumerico/Imagens/10.png)
+
+Primeiro, vamos resolver o problema de EDP governante por Euler explícito, para isso, definimos X de 0 a 1 com n = 100 e t de 0 a 1 com h = 100000.
+Será montada uma matriz onde cada coluna é uma das posições Xi (ordenadas) e cada linha é um dos instantes de tempo.
+O método consiste em definir uma linha u e sua linha anterior u_pass, assim:
+
+u[i] = u_pass[i] + F(u_pass[i-1] - 2*u_pass[i] + u_pass[i+1])
+
+Para i entre 1 e 100, onde u_pass[0] = u_pass[101] = 0. F é definido como dt/(dx)².
+
+```{r}
+#Definindo as variáveis
+tempA = 100
+tempB = 32
+temp_inicial = 25
+
+inicio_reta = 0
+fim_reta = 1
+passos_reta = 100
+inicio_tempo = 0
+fim_tempo = 1
+passos_tempo = 100000
+
+x = seq(inicio_reta, fim_reta, passos_reta)
+dx = (fim_reta - inicio_reta)/passos_reta
+t = seq(inicio_tempo, fim_tempo, passos_tempo)
+dt = (fim_tempo - inicio_tempo)/passos_tempo
+Par_F = dt/(dx^2)
+u_pass = c(tempA, rep(temp_inicial, passos_reta-2), tempB)
+u_inicial = u_pass
+
+#Matriz final e lista auxiliar
+matriz_explicito = data.frame(t(u_inicial))
+lista = list()
+
+#Loop para a criação das linhas
+for(m in (1:(passos_tempo-1))){
+  
+  u = u_pass + Par_F*(lead(x = u_pass, n = 1, default = 0) - 2*u_pass + lag(x = u_pass, n = 1, default = 0))
+  u[1] = tempA
+  u[passos_reta] = tempB
+  lista[[m]] <- u
+  u_pass = u
+  
+  
+}
+
+#Criação da matriz final 
+matriz_explicito = do.call(rbind, lista)
+matriz_explicito = rbind(u_inicial, matriz_explicito)
+
+```
+
+Podemos então fazer um gráfico para cada linha da matriz, representando a evolução da função do calor ao longo do tempo.
+
+```{r}
+#Modificando os dados para criar a animação com apenas algumas das linhas do dataframe.
+values_by_1000 <- matriz_explicito[seq(1,nrow(matriz_explicito), 1000), ] 
+values_transpose <- t(values_by_1000) %>% as.data.frame() 
+names(values_transpose) <- 1:nrow(values_transpose)
+values_long <- values_transpose %>% gather(key,values) %>% cbind(time = rep(1:nrow(values_transpose), ncol(values_transpose)))
+
+
+animation <- ggplot(values_long, aes(x = time, y = values))+
+                     geom_line(color = 'blue', size = 2)+
+                     transition_time(as.numeric(key))
+
+animate(animation, duration = 4, fps = 50, width = 800, height = 500, renderer = gifski_renderer())
+anim_save("equacao_calor_explicito.gif")
+
+
+
+
+```
+
+Após isso, realizaremos o método de Euler implícito. Primeiro, é definida a matriz principal A do sistema de acordo com as seguintes regras: no interior da matriz, a diagonal princiapl é definida como 1 + 2F, enquanto as diagonais menores em torno da diagonal principal são definidas como F, nos cantos, o primeiro elemento da matriz é a temperatura em x = 0 e o ultimo elemento da matriz é a temperatura em x = 100, todos os outros elementos da matriz são 0.
+
+```{r}
+#Criando a matriz A na variável 'sistema'.
+sistema = (1+2*Par_F)*diag(passos_reta)
+semi_diag_sup = -Par_F*lead(diag(passos_reta), default = 0)
+semi_diag_und = -Par_F*lag(diag(passos_reta), default = 0)
+sistema = sistema + semi_diag_sup + semi_diag_und
+sistema[1,] = c(1, rep(0, passos_reta-1))
+sistema[passos_reta,] = c(rep(0, passos_reta-1), 1)
+head(sistema)
+```
+Definida a matriz, o método consiste em, para cada linha, definir b como o vetor igual a linha anterior porém o primeiro e o último elemento são trocados pela temperatura em x = 0 e x = 100, respectivamente. Após isso, a linha é u é igual ao resultado do sistema de equações Ax = b. Resolvendo o sistema para cada passo de tempo, temos a evolução de cada ponto e, assim, a resolução numérica do problema.
+
+A função Solve da base do R retorna os valores da resolução de um sistema linear primeiro realizando a fatoração LU usando pivoteamento parcial e troca de linhas e depois resolvendo por substituição.
+
+```{r}
+#Iterando o método para cada instante de tempo
+u_pass = u_inicial
+lista = list()
+
+for(n in 1:(passos_tempo-1)){
+  b = c(tempA, u_pass[2:(passos_reta-1)], tempB)
+  #A função Solve resolve o sistema linear Ax = B utilizando métodos utilizando mecanismos do código do LAPACK.
+  u = solve(sistema, b)
+  lista[[n]] = u
+  u_pass = u
+}
+
+matriz_implicito = do.call(rbind, lista)
+matriz_implicito = rbind(u_inicial, matriz_implicito)
+
+```
+
+Segue a evolução da equação diferencial em função do tempo.
+
+```{r}
+#Ajustando a matriz para a animação e separando apenas as linhas a serem utilizadas. 
+values_by_1000 <- matriz_implicito[seq(1,nrow(matriz_implicito), 1000), ] 
+values_transpose <- t(values_by_1000) %>% as.data.frame() 
+names(values_transpose) <- 1:nrow(values_transpose)
+values_long <- values_transpose %>% gather(key,values) %>% cbind(time = rep(1:nrow(values_transpose), ncol(values_transpose)))
+
+
+animation <- ggplot(values_long, aes(x = time, y = values))+
+                     geom_line(color = 'blue', size = 2)+
+                     transition_time(as.numeric(key))
+
+animate(animation, duration = 4, fps = 50, width = 800, height = 500, renderer = gifski_renderer())
+anim_save("equacao_calor_implicito.gif")
+```
+
+
+O "pulo súbito" no começo da animação pode ser explicado pela sabida velocidade de propagação infinita da equação do calor, o que significa que pontos no interior da barra tem sua temperatura afetada instantaneamente pelas condições ao seu redor, para qualquer t > 0.
+
+
+
+
+Referências:
+
+[1] M. A. Gomes Ruggiero, V. L. da Rocha Lopes. Cálculo Numérico - Aspectos Teóricos e Computacionais, 2a
+edição, Editora Pearson, 1997.
+
+[2 ]W., Sanford. Applied Linear Regression. 2nd ed. New York, Wiley, 1985.
+
+
+
+
+
+
+
+
+
