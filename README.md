@@ -8,7 +8,7 @@ Trabalhos de disciplina: **sistemas lineares**, integração/ODE (órbitas), **e
   <img src="orbita_ajustada.gif" alt="Simulação de órbita" width="45%" />
   <img src="equacao_calor_explicito.gif" alt="Equação do calor — esquema explícito" width="45%" />
 </p>
-<p align="center"><img src="Imagens/11.png" alt="Gráfico numérico (trabalho II)" width="75%" /></p>
+<p align="center"><img src="orbita_extra.gif" alt="Simulação de órbita" width="45%" /></p>
 
 ## O que o código faz
 
